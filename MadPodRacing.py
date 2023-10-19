@@ -56,6 +56,78 @@ def boosting_time(liste_checkpoints):
 
     return boosting_time
 
+def calc_angle_next_turn(x, y, current_checkpoint, next_checkpoint_dist, liste_checkpoints)  :
+    """
+    Fonction pour calculer l'angle entre le vaisseau et la trajectoire vers le checkpoint après le prochain checkpoint.
+    Prenons 3 points :
+    A : Position vaisseau
+    B : Position checkpoint suivant
+    C : Position du checkpoint d'après
+
+    On calcule l'angle du point B
+    Donc l'angle formé par la droite entre A et B et la droite entre B et C
+
+    Lorsqu'on est au premier tour, et que les points suivants ne sont pas connus, on calculera l'angle vers le centre de
+    la carte (probabilité + élevé de s'approcher de la véritable direction qu'un autre point sur la map)
+    """
+
+    #D'abord obtenir les coordonnées du futur checkpoint (position C)
+
+
+
+    #Lorsque l'on le connait, on le retrouve dans la liste de nos checkpoints :
+    i = 0
+    while i < len(liste_checkpoints) :
+
+        if liste_checkpoints[i] == current_checkpoint :
+
+            if i+1 == len(liste_checkpoints) :
+                future_checkpoint = liste_checkpoints[0]
+            else :
+                future_checkpoint = liste_checkpoints[i+1]
+        
+        i =+ 1
+
+    #Lorsque l'on connait pas le future checkpoint (au premier tour), on considère qu'il est au centre de la map
+    if future_checkpoint == current_checkpoint :
+        future_checkpoint = (8000,4500)
+    
+    print("future_checkpoint" ,future_checkpoint, file=sys.stderr)
+    print("current_checkpoint" ,current_checkpoint, file=sys.stderr)
+
+
+    #on calcule les distances que l'on ne connait pas encore :
+    distance_between_current_and_future_checkpoints = math.dist(current_checkpoint, future_checkpoint)
+    distance_between_ship_and_future_checkpoints = math.dist(current_checkpoint, (x,y) )
+
+    print("distance_between_current_and_future_checkpoints", distance_between_current_and_future_checkpoints , file=sys.stderr)
+    print("distance_between_ship_and_future_checkpoints" ,distance_between_ship_and_future_checkpoints, file=sys.stderr)
+    print("next_checkpoint_dist" ,next_checkpoint_dist, file=sys.stderr)
+
+
+    #on calcule l'angle du checkpoint suivant
+    a_kwadraat = next_checkpoint_dist**2
+    b_kwadraat = distance_between_current_and_future_checkpoints**2
+    c_kwadraat = distance_between_ship_and_future_checkpoints**2
+
+    teller = a_kwadraat + b_kwadraat - c_kwadraat
+    noemer = 2*next_checkpoint_dist*distance_between_current_and_future_checkpoints
+    print("teller" ,teller, file=sys.stderr)
+    print("noemer" ,noemer, file=sys.stderr)
+    
+    result = teller/noemer
+    print("result" ,result, file=sys.stderr)
+
+    angle_next_turn = math.acos(teller/noemer)
+    #bug à régler, quand je m'approche trop du checkpoint, la précision n'est plus assez bonne et ça foire.
+    #AKA désactiver cette fonction quand on est à moins de 600 en distance ? (sur la zone checkpoint quoi)
+
+    return angle_next_turn
+
+    
+
+
+
 
 
 # game loop
@@ -74,17 +146,6 @@ while True:
     current_checkpoint = (next_checkpoint_x, next_checkpoint_y)
 
     """Après 1 tour, on calcule le meilleur moment pour faire un boost"""
-    
-    """
-    if start == False :
-        if lap == 0 :
-            if current_checkpoint in liste_checkpoints and turning_point = True :
-                lap += 1
-                #départ du tour 1 - On a les coordonnées de tous les checkpoints. On va pouvoir calculer la distance entre chaque checkpoint
-                #et définir laquelle est la plus longue, ceci indiquera quand lacher le boost.
-                boost_time = boost_time(liste_checkpoints)
-    start = False
-    """
 
     """
     Mémoriser la dernière instruction de checkpoint, ainsi on peut savoir quand on passe un checkpoint.
@@ -109,6 +170,9 @@ while True:
         turning_point = False
     #reset le checkpoint pour le tour suivant
     last_round_checkpoint = current_checkpoint 
+
+    angle_next_turn = calc_angle_next_turn(x,y,current_checkpoint, next_checkpoint_dist, liste_checkpoints)
+    print("angle_next_turn : ", angle_next_turn, file=sys.stderr)
 
     """------------------------------------------thrust origine----------------------------------------------"""
 
