@@ -128,7 +128,6 @@ def calc_angle_next_turn(current_checkpoint, next_checkpoint_dist, liste_checkpo
     #AKA désactiver cette fonction quand on est à moins de 600 en distance ? (sur la zone checkpoint quoi)
 
     return angle_next_turn
-
     
 def calc_future_checkpoint(current_checkpoint, liste_checkpoints):
     """
@@ -166,6 +165,14 @@ def calc_future_checkpoint(current_checkpoint, liste_checkpoints):
 
     return future_checkpoint
 
+def calc_speed(position_last_round, x, y):
+    """
+    Fonction pour calculer la vitesse du pod.
+    Return : Pod Speed en unités/round
+    """
+    pod_speed = math.floor(math.dist(position_last_round, (x, y)))
+
+    return pod_speed
 
 
 
@@ -229,6 +236,17 @@ while True:
         print("angle_next_turn : ", angle_next_turn, file=sys.stderr)
     """
 
+    """----------------------------------Vitesse du pod----------------------------------------------"""
+
+    if start == True :
+        #initialiser position last round au premier tour.
+        position_last_round = (x, y)
+        start = False
+
+    pod_speed = calc_speed(position_last_round, x, y)  
+    position_last_round = (x, y)  #enregistrer la position pour le calcul du round suivant
+
+    print("Pod Speed :", pod_speed, file=sys.stderr)
 
     """----------------------------------puissance de Thrust / Boost----------------------------------------------"""
 
