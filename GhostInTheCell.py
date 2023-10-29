@@ -140,11 +140,10 @@ while True:
     if len(closest_factory_3) == 0 and len(closest_factory_2) == 0 and len(closest_factory_1) == 0 and len(closest_factory_0) == 0 :
         if len(production_3_enemy) > 0 :
             closest_factory_3 = (-1, 50000)
-
-        for i in production_3_enemy :
-            distance = verify_distance(factory_max_cyborgs, i)
-            if distance < closest_factory_3[1] :
-                closest_factory_3 = (i, distance)
+            for i in production_3_enemy :
+                distance = verify_distance(factory_max_cyborgs, i)
+                if distance < closest_factory_3[1] :
+                    closest_factory_3 = (i, distance)
         
         else :
             closest_factory_3 = ()
@@ -222,5 +221,8 @@ while True:
 
 
     # Any valid action, such as "WAIT" or "MOVE source destination cyborgs"
-    print("MOVE", str(factory_max_cyborgs), str(closest_factory[0]), str(math.floor(max_cyborgs/3)) )
+    if factory_max_cyborgs == closest_factory[0] :
+        print("WAIT")
+    else :
+        print("MOVE", str(factory_max_cyborgs), str(closest_factory[0]), str(math.floor(max_cyborgs/3)) )
     #print("WAIT")
