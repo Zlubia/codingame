@@ -3,7 +3,9 @@ import math
 
 #Initialize variables
 list_of_distances = []
-Turn_count = 0
+turn_count = 0
+amount_bombs = 2
+dont_send_bombs_during = 0
 
 # Auto-generated code below aims at helping you parse
 # the standard input according to the problem statement.
@@ -38,7 +40,8 @@ def verify_distance(factory_1, factory_2):
 
 # game loop
 while True:
-    Turn_count += 1
+    turn_count += 1
+    dont_send_bombs_during -= 1
 
     production_3_neutral = []
     production_2_neutral = []
@@ -51,6 +54,8 @@ while True:
     production_0_enemy = []
 
     max_cyborgs = 0
+
+    send_bomb = False
 
 
     entity_count = int(input())  # the number of entities (e.g. factories and troops)
@@ -77,6 +82,9 @@ while True:
                     production_0_neutral.append(i)
 
             if arg_1 == -1 : #If the factory is an enemy
+                if turn_count == 1 :
+                    ennemy_base = i
+
                 if arg_3 == 3 : #if production is 3
                     production_3_enemy.append(i)
                 elif arg_3 == 2 :
@@ -138,7 +146,15 @@ while True:
     #Une fois toutes les factory neutres prises, on attaque les ennemis :
 
     if len(closest_factory_3) == 0 and len(closest_factory_2) == 0 and len(closest_factory_1) == 0 and len(closest_factory_0) == 0 :
+        
+        #On lance la bombe quand on attaque des ennemis.
+        if amount_bombs > 0 and dont_send_bombs_during < 0 :
+            send_bomb = True
+        else :
+            send_bomb = False
+        
         if len(production_3_enemy) > 0 :
+
             closest_factory_3 = (-1, 50000)
             for i in production_3_enemy :
                 distance = verify_distance(factory_max_cyborgs, i)
@@ -189,15 +205,18 @@ while True:
             distance_delta = closest_factory_3[1] - closest_factory_2[1]
             if distance_delta > 2 : #le 2 est le nombre de tour de production. En 2 tours, un factory 2 produit 4 cyborgs.
                 closest_factory = closest_factory_2
+
         
         if len(closest_factory_1) > 0 and closest_factory == closest_factory_3:
             distance_delta = closest_factory_3[1] - closest_factory_1[1]
             if distance_delta > 4 : #le 4 est le nombre de tour de production. En 4 tours, un factory 1 produit 4 cyborgs.
                 closest_factory = closest_factory_1
 
+
     elif len(closest_factory_2) > 0 :
 
         closest_factory = closest_factory_2
+
 
         if len(closest_factory_1) > 0 :
             distance_delta = closest_factory_2[1] - closest_factory_1[1]
@@ -205,6 +224,7 @@ while True:
                 closest_factory = closest_factory_1
     
     elif len(closest_factory_1) > 0 :
+       
 
         closest_factory = closest_factory_1
 
@@ -223,6 +243,13 @@ while True:
     # Any valid action, such as "WAIT" or "MOVE source destination cyborgs"
     if factory_max_cyborgs == closest_factory[0] :
         print("WAIT")
+    elif send_bomb == True :
+        amount_bombs -= 1
+        dont_send_bombs_during = closest_factory[1] + 4
+        print("BOMB", str(factory_max_cyborgs), str(closest_factory[0]) )
+    elif turn_count == 1 :
+        amount_bombs -= 1
+        print("MOVE", str(factory_max_cyborgs), str(closest_factory[0]), str(math.floor(max_cyborgs/3)),";", "BOMB", str(factory_max_cyborgs), str(ennemy_base) )
     else :
         print("MOVE", str(factory_max_cyborgs), str(closest_factory[0]), str(math.floor(max_cyborgs/3)) )
     #print("WAIT")
