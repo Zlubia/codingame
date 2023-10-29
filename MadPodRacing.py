@@ -253,24 +253,32 @@ while True:
     print("next_distance : ", next_checkpoint_dist, file=sys.stderr)
 
     #si le pod est mal aligné, ralentir
-    if next_checkpoint_angle > 90 or next_checkpoint_angle < -90:
+    if next_checkpoint_angle > 45 or next_checkpoint_angle < -45:
         turning = True
     else :
         turning = False
 
-    if next_checkpoint_dist < 2000 :
+    if next_checkpoint_dist < 3*pod_speed :
         slowing_down = True
     else :
         slowing_down = False
 
-    if turning == True or slowing_down == True :
+    if turning == True and slowing_down == True :
+        thrust = 5
+    elif slowing_down == True :
+        thrust = 50
+    elif turning == True and next_checkpoint_dist > 6000 :
+        thrust = 75
+    elif turning == True and next_checkpoint_dist < 2000 :
+        thrust = 5
+    elif turning == True :
         thrust = 30
     else :
         thrust = 100
 
     if boost > 0 :
         #on a qu'un seul boost
-        if -4 < next_checkpoint_angle < 4 and current_checkpoint == boost_time :
+        if -3 < next_checkpoint_angle < 3 and current_checkpoint == boost_time :
             boost -= 1
             thrust = "BOOST"
             print("Using BOOOST", current_checkpoint, file=sys.stderr)
@@ -279,14 +287,11 @@ while True:
     ---------------------------------------------Direction-------------------------------------------
     """
 
-    #PROCHAINE FOIS --> prendre en compte la distance entre les checkpoints, ralentir en fonction de la distance (ou de
-    #la vitesse) plutôt qu'arbitraiement à 2000 du checkpoint.
-
     #ENSUITE --> voir comment intégrer un décallage dans la direction pour mieux prendre le virage
 
     direction_modifier = math.floor(next_checkpoint_dist/4)
     
-    if slowing_down == True :
+    if  next_checkpoint_dist < 2*pod_speed :
         direction_x = future_checkpoint[0]
         direction_y = future_checkpoint[1]
     
