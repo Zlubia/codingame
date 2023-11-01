@@ -56,21 +56,8 @@ def boosting_time(liste_checkpoints):
 
     return boosting_time
 
-def calc_angle_next_turn(current_checkpoint, next_checkpoint_dist, liste_checkpoints)  :
-    """
-    Fonction pour calculer l'angle entre le vaisseau et la trajectoire vers le checkpoint après le prochain checkpoint.
-    Prenons 3 points :
-    A : Position du checkpoint précédent
-    B : Position checkpoint suivant (current - direction)
-    C : Position du checkpoint d'après
+def previous_and_future_checkpoints (current_checkpoint, liste_checkpoints) :
 
-    On calcule l'angle du point B
-    Donc l'angle formé par la droite entre A et B et la droite entre B et C
-
-    Lorsqu'on est au premier tour, et que les points suivants ne sont pas connus, on calculera l'angle vers le centre de
-    la carte (probabilité + élevé de s'approcher de la véritable direction qu'un autre point sur la map)
-    """
-    
     #D'abord obtenir les coordonnées du futur checkpoint (position C)
     #Lorsque l'on le connait, on le retrouve dans la liste de nos checkpoints :
     i = 0
@@ -90,45 +77,76 @@ def calc_angle_next_turn(current_checkpoint, next_checkpoint_dist, liste_checkpo
                 future_checkpoint = liste_checkpoints[i+1]
                 previous_checkpoint = liste_checkpoints[i-1]                  
         i += 1
-
+    
     #Lorsque l'on connait pas le future checkpoint (au premier tour), on considère qu'il est au centre de la map
     if lap == 0 : 
         future_checkpoint = (8000,4500)
-    
-    print("future_checkpoint" ,future_checkpoint, file=sys.stderr)
-    print("current_checkpoint" ,current_checkpoint, file=sys.stderr)
 
+    print("future_checkpoint" ,future_checkpoint, file=sys.stderr)
+    print("previous_checkpoint" ,previous_checkpoint, file=sys.stderr)
+    
+    return previous_checkpoint, future_checkpoint
+
+def calc_angle_next_turn(current_checkpoint, previous_checkpoint, future_checkpoint)  :
+    """
+    Fonction pour calculer l'angle entre le checkpoint précédent et la trajectoire vers le checkpoint après le prochain checkpoint.
+    Prenons 3 points :
+    A : Position du checkpoint précédent
+    B : Position checkpoint suivant (current - direction)
+    C : Position du checkpoint d'après
+
+    On calcule l'angle du point B
+    Donc l'angle formé par la droite entre A et B et la droite entre B et C
+
+    Lorsqu'on est au premier tour, et que les points suivants ne sont pas connus, on calculera l'angle vers le centre de
+    la carte (probabilité + élevé de s'approcher de la véritable direction qu'un autre point sur la map)
+    
+    ! ! ! Fonction ne fonctionne pas avant d'avoir passé le premier checkpoint ! ! !
+    """
 
     #on calcule les distances que l'on ne connait pas encore :
     distance_between_current_and_future_checkpoints = math.floor(math.dist(current_checkpoint, future_checkpoint))
     distance_between_previous_and_future_checkpoints = math.floor(math.dist(future_checkpoint, previous_checkpoint))
+    distance_between_previous_and_current_checkpoints = math.floor(math.dist(previous_checkpoint, current_checkpoint))
 
-    print("distance_between_current_and_future_checkpoints", distance_between_current_and_future_checkpoints , file=sys.stderr)
-    print("distance_between_previous_and_future_checkpoints" ,distance_between_previous_and_future_checkpoints, file=sys.stderr)
-    print("next_checkpoint_dist" ,next_checkpoint_dist, file=sys.stderr)
+    #print("distance_between_current_and_future_checkpoints", distance_between_current_and_future_checkpoints , file=sys.stderr)
+    #print("distance_between_previous_and_future_checkpoints" ,distance_between_previous_and_future_checkpoints, file=sys.stderr)
+    #print("distance_between_previous_and_current_checkpoints" ,distance_between_previous_and_current_checkpoints, file=sys.stderr)
 
     if distance_between_current_and_future_checkpoints == distance_between_previous_and_future_checkpoints :
         return 0
 
     #on calcule l'angle du checkpoint suivant
-    a_kwadraat = next_checkpoint_dist**2
+    a_kwadraat = distance_between_previous_and_current_checkpoints**2
     b_kwadraat = distance_between_current_and_future_checkpoints**2
     c_kwadraat = distance_between_previous_and_future_checkpoints**2
 
     teller = a_kwadraat + b_kwadraat - c_kwadraat
-    noemer = 2*next_checkpoint_dist*distance_between_current_and_future_checkpoints
-    print("teller" ,teller, file=sys.stderr)
-    print("noemer" ,noemer, file=sys.stderr)
+    noemer = 2*distance_between_previous_and_current_checkpoints*distance_between_current_and_future_checkpoints
+    #print("teller" ,teller, file=sys.stderr)
+    #print("noemer" ,noemer, file=sys.stderr)
     
     result = teller/noemer
-    print("result" ,result, file=sys.stderr)
+    #print("result" ,result, file=sys.stderr)
 
     angle_next_turn = math.acos(teller/noemer)
-    #bug à régler, quand je m'approche trop du checkpoint, la précision n'est plus assez bonne et ça foire.
-    #AKA désactiver cette fonction quand on est à moins de 600 en distance ? (sur la zone checkpoint quoi)
+
+    angle_next_turn = math.degrees(angle_next_turn)
+
 
     return angle_next_turn
-    
+
+def calc_line_distance(first_point, second_point, x, y) :
+    """
+    Fonction pour obtenir la distance entre un point (x,y) et une ligne donnée par 2 points (first_point, second_point)
+    """
+    teller = abs( ( (second_point[0] - first_point[0]) * (first_point[1] - y) ) - ( (first_point[0] - x) * (second_point[1] - first_point[1]) ) )
+    noemer = math.sqrt( ((second_point[0] - first_point[0] )**2) + (( second_point[1] - first_point[1] )**2) )
+
+    distance = teller / noemer
+
+    return math.floor(distance)
+
 def calc_future_checkpoint(current_checkpoint, liste_checkpoints):
     """
     Fonction pour définir le checkpoint après le suivant
@@ -173,6 +191,23 @@ def calc_speed(position_last_round, x, y):
     pod_speed = math.floor(math.dist(position_last_round, (x, y)))
 
     return pod_speed
+
+def calc_direction_coordinates(current_checkpoint, future_checkpoint) :
+    """
+    Fonction pour trouver les coordonnées du bord du checkpoint (offset du centre) en direction du futur checkpoint.
+    Voir dessin de ref
+
+    Returns Direction X and Direction Y
+    """
+    distance_checkpoint_offset = 380 #Le rayon du checkpoint est de 400, on prend un chiffre un peu plus bas pour être dans la zone.
+    distance_between_current_and_future_checkpoints = math.floor(math.dist(current_checkpoint, future_checkpoint))
+
+    # X = -B/A * (x2 - x1) + x2
+    direction_x = (-distance_checkpoint_offset / distance_between_current_and_future_checkpoints) * (current_checkpoint[0] - future_checkpoint[0]) + current_checkpoint[0]
+    direction_y = (-distance_checkpoint_offset / distance_between_current_and_future_checkpoints) * (current_checkpoint[1] - future_checkpoint[1]) + current_checkpoint[1]
+
+    return round(direction_x), round(direction_y)
+
 
 
 
@@ -224,17 +259,26 @@ while True:
             print("LAP : ", lap, file=sys.stderr)
 
     """
-    Si l'on vient de passer un checkpoint, on modifie la variable du checkpoint futur.
+    Si l'on vient de passer un checkpoint, on modifie la variable du checkpoint précédent et futur
+    ainsi que le calcul de l'angle du prochain virage.
     """
     if Turning_point == True :
-        future_checkpoint = calc_future_checkpoint(current_checkpoint, liste_checkpoints)
+        previous_checkpoint, future_checkpoint = previous_and_future_checkpoints(current_checkpoint, liste_checkpoints)
 
+        #angle_next_turn = calc_angle_next_turn(current_checkpoint, previous_checkpoint, future_checkpoint)
+        
+    #print("angle_next_turn : ", angle_next_turn, file=sys.stderr)
+    
     """
-    #Calcul de l'angle du prochain virage. S'arrête lorsque l'on est au dessus de la zone checkpoint
-    if next_checkpoint_dist > 600 :
-        angle_next_turn = calc_angle_next_turn(current_checkpoint, next_checkpoint_dist, liste_checkpoints)
-        print("angle_next_turn : ", angle_next_turn, file=sys.stderr)
+    Calcule la distance entre le pod et la ligne droite de course (ligne droite entre le checkpoint précédent et suivant)
     """
+    """
+    if lap > 0 :
+        
+        line_distance = calc_line_distance(previous_checkpoint, current_checkpoint, x, y)
+        print("line_distance : ", line_distance, file=sys.stderr)
+    """
+    
 
     """----------------------------------Vitesse du pod----------------------------------------------"""
 
@@ -283,11 +327,14 @@ while True:
             thrust = "BOOST"
             print("Using BOOOST", current_checkpoint, file=sys.stderr)
 
+
     """
     ---------------------------------------------Direction-------------------------------------------
     """
 
     #ENSUITE --> voir comment intégrer un décallage dans la direction pour mieux prendre le virage
+
+
 
     direction_modifier = math.floor(next_checkpoint_dist/4)
     
@@ -296,29 +343,8 @@ while True:
         direction_y = future_checkpoint[1]
     
     else :
-        direction_x = next_checkpoint_x
-        direction_y = next_checkpoint_y
-        """
-        #direction X
-        if x < next_checkpoint_x < future_checkpoint[0] :
-            direction_x = next_checkpoint_x - direction_modifier
-        
-        elif x > next_checkpoint_x > future_checkpoint[0] :
-            direction_x = next_checkpoint_x + direction_modifier
+        direction_x, direction_y = calc_direction_coordinates(current_checkpoint, future_checkpoint)
 
-        else :
-            direction_x = next_checkpoint_x
-
-        #direction Y
-        if y < next_checkpoint_y < future_checkpoint[1] :
-            direction_y = next_checkpoint_y - direction_modifier
-        
-        elif y > next_checkpoint_y > future_checkpoint[1] :
-            direction_y = next_checkpoint_y + direction_modifier
-
-        else :
-            direction_y = next_checkpoint_y
-        """
 
     
     print("next_checkpoint : ", current_checkpoint, file=sys.stderr)
@@ -330,3 +356,5 @@ while True:
     # followed by the power (0 <= thrust <= 100)
     # i.e.: "x y thrust"
     print(str(direction_x) + " " + str(direction_y) + " ", str(thrust))
+
+
