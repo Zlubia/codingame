@@ -258,17 +258,8 @@ while True:
             lap += 1
             print("LAP : ", lap, file=sys.stderr)
 
-    """
-    Si l'on vient de passer un checkpoint, on modifie la variable du checkpoint précédent et futur
-    ainsi que le calcul de l'angle du prochain virage.
-    """
-    if Turning_point == True :
-        previous_checkpoint, future_checkpoint = previous_and_future_checkpoints(current_checkpoint, liste_checkpoints)
-
-        #angle_next_turn = calc_angle_next_turn(current_checkpoint, previous_checkpoint, future_checkpoint)
-        
-    #print("angle_next_turn : ", angle_next_turn, file=sys.stderr)
     
+        
     """
     Calcule la distance entre le pod et la ligne droite de course (ligne droite entre le checkpoint précédent et suivant)
     """
@@ -278,7 +269,29 @@ while True:
         line_distance = calc_line_distance(previous_checkpoint, current_checkpoint, x, y)
         print("line_distance : ", line_distance, file=sys.stderr)
     """
+     
     
+    
+    """
+    Si l'on vient de passer un checkpoint, on modifie la variable du checkpoint précédent et futur
+    ainsi que le calcul de l'angle du prochain virage.
+    """
+
+    if Turning_point == True :
+        previous_checkpoint, future_checkpoint = previous_and_future_checkpoints(current_checkpoint, liste_checkpoints)
+
+        #angle_next_turn = calc_angle_next_turn(current_checkpoint, previous_checkpoint, future_checkpoint)
+        
+    #print("angle_next_turn : ", angle_next_turn, file=sys.stderr)
+
+
+    try :
+        pod_angle_next_turn = calc_angle_next_turn(current_checkpoint, (x,y), future_checkpoint)
+        print("pod_angle_next_turn : ", pod_angle_next_turn, file=sys.stderr)
+    except ValueError :
+        pod_angle_next_turn = 2
+        print("pod_angle_next_turn ValueError ! : ", pod_angle_next_turn, file=sys.stderr)
+
 
     """----------------------------------Vitesse du pod----------------------------------------------"""
 
@@ -302,27 +315,31 @@ while True:
     else :
         turning = False
 
-    if next_checkpoint_dist < 3*pod_speed :
+    if next_checkpoint_dist < 4*pod_speed :
         slowing_down = True
     else :
         slowing_down = False
 
+    
+
     if turning == True and slowing_down == True :
         thrust = 5
     elif slowing_down == True :
-        thrust = 50
+        thrust = round(pod_angle_next_turn*1.2)
     elif turning == True and next_checkpoint_dist > 6000 :
         thrust = 75
     elif turning == True and next_checkpoint_dist < 2000 :
         thrust = 5
     elif turning == True :
-        thrust = 30
+        thrust = 50
     else :
+        thrust = 100
+    
+    if thrust > 100 :
         thrust = 100
 
     if boost > 0 :
-        #on a qu'un seul boost
-        if -3 < next_checkpoint_angle < 3 and current_checkpoint == boost_time :
+        if -2 < next_checkpoint_angle < 2 and current_checkpoint == boost_time :
             boost -= 1
             thrust = "BOOST"
             print("Using BOOOST", current_checkpoint, file=sys.stderr)
@@ -331,10 +348,6 @@ while True:
     """
     ---------------------------------------------Direction-------------------------------------------
     """
-
-    #ENSUITE --> voir comment intégrer un décallage dans la direction pour mieux prendre le virage
-
-
 
     direction_modifier = math.floor(next_checkpoint_dist/4)
     
@@ -345,11 +358,16 @@ while True:
     else :
         direction_x, direction_y = calc_direction_coordinates(current_checkpoint, future_checkpoint)
 
-
+    #Ligne d'arrivée.
+    if lap == 3 :
+        index_last_checkpoint = len(liste_checkpoints) - 1
+        if liste_checkpoints[index_last_checkpoint] == current_checkpoint :
+            direction_x = current_checkpoint[0]
+            direction_y = current_checkpoint[1]
     
     print("next_checkpoint : ", current_checkpoint, file=sys.stderr)
     print("next_direction : ", (direction_x, direction_y), file=sys.stderr)
-    print("modifier : ", direction_modifier, file=sys.stderr)
+    #print("modifier : ", direction_modifier, file=sys.stderr)
     print("slowing down : ", slowing_down, file=sys.stderr)
 
     # You have to output the target position
