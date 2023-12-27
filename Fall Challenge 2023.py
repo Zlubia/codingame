@@ -227,7 +227,7 @@ while True:
                     else :
                         if traveling_east == True :
                             move_x = 9000
-                        else traveling_west == True :
+                        elif traveling_west == True :
                             move_x = 1000
                         move_y = 8750
 
