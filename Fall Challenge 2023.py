@@ -26,7 +26,10 @@ zone_0_cleared = False
 zone_1_cleared = False
 zone_2_cleared = False
 
-
+surface = "surface"
+zone_0 = "zone 0"
+zone_1 = "zone 1"
+zone_2 = "zone 2"
 
 
 #Functions   
@@ -44,6 +47,33 @@ def activate_light(my_drones):
         light = 0
     
     return light
+
+def zone_choice(zone_0_cleared, zone_1_cleared, zone_2_cleared, explo_zone_2, explo_zone_0):
+    #Fonction pour définir dans quelle zone aller avec son drone
+    #2 options, zone cleared, ou drone 1 déjà présent dans la zone.
+    if zone_2_cleared == True and zone_1_cleared == True and zone_0_cleared == True :
+        zone_choice = surface
+        return zone_choice
+    
+    elif zone_2_cleared == True and zone_0_cleared == True :
+        zone_choice = zone_1
+        return zone_choice
+    
+    if explo_zone_2 == True or zone_2_cleared == True :
+        if explo_zone_0 == True or zone_0_cleared == True :
+            zone_choice = zone_1
+            return zone_choice
+        else :
+            zone_choice = zone_0
+            return zone_choice
+    else :
+        zone_choice = zone_2
+        return zone_choice
+
+
+    
+    
+
 
 
 #Initial turn
@@ -68,6 +98,8 @@ while True:
     distance_closest_fish = 16000.0
     creature_found = False
     search_zone = -1
+    explo_zone_2 = False
+    explo_zone_0 = False
     
     """"------GAME LOOP-------"""
     my_score = int(input())
@@ -161,6 +193,10 @@ while True:
 
     for i in range(my_drone_count):
 
+        #RESET VARIABLE :
+        traveling_west = False
+        traveling_east = False
+
         """Déplacement de la capsule vers la zone voulue"""
         if creature_found == False :
 
@@ -170,11 +206,15 @@ while True:
             elif my_drones[i][1] < 1200 :
                 traveling_east = True
 
+            chosen_zone = zone_choice(zone_0_cleared, zone_1_cleared, zone_2_cleared, explo_zone_2, explo_zone_0)
+
             """----------ZONE 2------------"""
-            if zone_2_cleared == False :
+            if chosen_zone == zone_2 :
+
+                explo_zone_2 = True
 
                 for j in fish_type_2 :
-                    print("j",j, file=sys.stderr, flush=True)
+                    #print("j",j, file=sys.stderr, flush=True)
                     if j not in scanned_creatures :
                         search_zone = 2
             
@@ -187,7 +227,7 @@ while True:
                     else :
                         if traveling_east == True :
                             move_x = 9000
-                        elif traveling_west == True :
+                        else traveling_west == True :
                             move_x = 1000
                         move_y = 8750
 
@@ -201,10 +241,12 @@ while True:
                     light = activate_light(my_drones)
 
                 """----------ZONE 0------------"""
-            elif zone_0_cleared == False :
+            elif chosen_zone == zone_0 :
+
+                explo_zone_0 = True
 
                 for j in fish_type_0 :
-                    print("j",j, file=sys.stderr, flush=True)
+                    #print("j",j, file=sys.stderr, flush=True)
                     if j not in scanned_creatures :
                         search_zone = 0
 
@@ -231,10 +273,10 @@ while True:
                     light = activate_light(my_drones)
 
                 """----------ZONE 1------------"""
-            elif zone_1_cleared == False :
+            elif chosen_zone == zone_1 :
 
                 for j in fish_type_1 :
-                    print("j",j, file=sys.stderr, flush=True)
+                    #print("j",j, file=sys.stderr, flush=True)
                     if j not in scanned_creatures :
                         search_zone = 1
 
@@ -259,6 +301,13 @@ while True:
                     move_y = 0
 
                     light = activate_light(my_drones)
+
+                """---Retour surface, tout est exploré---"""
+            elif chosen_zone == surface :
+
+                    move_x = my_drones[i][1]
+                    move_y = 0
+
             
             
         """RUSTINE - Charger battery si moins de 5"""
