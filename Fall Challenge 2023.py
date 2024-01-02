@@ -12,7 +12,7 @@ fish_type_monster = []
 scanned_creatures = []
 saved_scans = []
 
-my_drones = {}
+my_drones = []
 move_x = 2000
 move_y = 10000
 light = 0
@@ -32,6 +32,17 @@ zone_0 = "zone 0"
 zone_1 = "zone 1"
 zone_2 = "zone 2"
 
+first_turn = True
+
+#Objects
+class Drone:
+    def __init__(self, drone_id, drone_x, drone_y, emergency, battery):
+        self.drone_id = drone_id
+        self.drone_x = drone_x
+        self.drone_y = drone_y
+        self.emergency = emergency
+        self.battery = battery
+
 
 #Functions   
 def add_scanned_creatures(creature_id, scanned_list):
@@ -44,7 +55,7 @@ def add_scanned_creatures(creature_id, scanned_list):
 def activate_light(my_drones, no_light):
     if no_light == True :
         light = 0
-    elif my_drones[i][4] > 5 :
+    elif my_drones[i].battery > 5 :
         light = 1
     else :
         light = 0
@@ -126,7 +137,14 @@ while True:
     my_drone_count = int(input())
     for i in range(my_drone_count):
         drone_id, drone_x, drone_y, emergency, battery = [int(j) for j in input().split()]
-        my_drones[i] = (drone_id, drone_x, drone_y, emergency, battery)
+        if first_turn == True :
+            my_drones.append(Drone(drone_id, drone_x, drone_y, emergency, battery))
+        else :
+            my_drones[i].drone_x = drone_x
+            my_drones[i].drone_y = drone_y
+            my_drones[i].emergency = emergency
+            my_drones[i].battery = battery
+
         print("Drone ID", drone_id, file=sys.stderr, flush=True)
 
         print("my drones",my_drones, file=sys.stderr, flush=True)
@@ -141,7 +159,7 @@ while True:
 
         # Ajouter les fish scannés, uniquement les miens. (Normalement devrait fonctionner avec plusieurs drones)
         for j in my_drones :
-            if drone_id == my_drones[j][0] :
+            if drone_id == j.drone_id :
                 add_scanned_creatures(creature_id, scanned_creatures)
             
 
@@ -152,6 +170,8 @@ while True:
         """if a monster is close, shut down the light and drive oposite way"""
         if creature_id in fish_type_monster :
             print("MONSTER ALERT", creature_id, file=sys.stderr, flush=True)
+
+
 
             creature_found = True
             no_light = True
@@ -180,8 +200,8 @@ while True:
             
             print("Creature ID", creature_id, file=sys.stderr, flush=True)
             for i in my_drones :
-                drone_x = my_drones[i][1]
-                drone_y = my_drones[i][2]
+                drone_x = my_drones[i].drone_x
+                drone_y = my_drones[i].drone_y
                 distance_current_fish = math.dist([creature_x, creature_y], [drone_x, drone_y])
                 
                 if distance_current_fish < distance_closest_fish :
@@ -233,9 +253,9 @@ while True:
         if creature_found == False :
 
             #direction
-            if my_drones[i][1] > 8800 :
+            if my_drones[i].drone_x > 8800 :
                 traveling_west = True
-            elif my_drones[i][1] < 1200 :
+            elif my_drones[i].drone_x < 1200 :
                 traveling_east = True
 
             chosen_zone = zone_choice(zone_0_cleared, zone_1_cleared, zone_2_cleared, explo_zone_2, explo_zone_0)
@@ -253,7 +273,7 @@ while True:
                 if search_zone == 2 :
                 #go to zone and search there
 
-                    if my_drones[i][2] < ceiling_zone_2+1200 :
+                    if my_drones[i].drone_y < ceiling_zone_2+1200 :
                         move_x = 1000
                         move_y = 10000
                     else :
@@ -267,7 +287,7 @@ while True:
                 
                 else :
                 #get to surface to save the scans
-                    move_x = my_drones[i][1]
+                    move_x = my_drones[i].drone_x
                     move_y = 0
 
                     light = activate_light(my_drones, no_light)
@@ -285,7 +305,7 @@ while True:
                 if search_zone == 0 :
                 #go to zone and search there
 
-                    if my_drones[i][2] < ceiling_zone_0+1100 or my_drones[i][2] > ceiling_zone_0+1400:
+                    if my_drones[i].drone_y < ceiling_zone_0+1100 or my_drones[i].drone_y > ceiling_zone_0+1400:
                         move_x = 1000
                         move_y = 3750
                     else :
@@ -299,7 +319,7 @@ while True:
                 
                 else :
                 #get to surface to save the scans
-                    move_x = my_drones[i][1]
+                    move_x = my_drones[i].drone_x
                     move_y = 0
 
                     light = activate_light(my_drones, no_light)
@@ -315,7 +335,7 @@ while True:
                 if search_zone == 1 :
                 #go to zone and search there
 
-                    if my_drones[i][2] < ceiling_zone_1+1100 or my_drones[i][2] > ceiling_zone_1+1400:
+                    if my_drones[i].drone_y < ceiling_zone_1+1100 or my_drones[i].drone_y > ceiling_zone_1+1400:
                         move_x = 1000
                         move_y = 6250
                     else :
@@ -329,7 +349,7 @@ while True:
                 
                 else :
                 #get to surface to save the scans
-                    move_x = my_drones[i][1]
+                    move_x = my_drones[i].drone_y
                     move_y = 0
 
                     light = activate_light(my_drones, no_light)
@@ -337,13 +357,13 @@ while True:
                 """---Retour surface, tout est exploré---"""
             elif chosen_zone == surface :
 
-                    move_x = my_drones[i][1]
+                    move_x = my_drones[i].drone_y
                     move_y = 0
 
             
             
         """RUSTINE - Charger battery si moins de 5"""
-        if my_drones[i][4] < 5 :
+        if my_drones[i].drone_y < 5 :
             light = 0
 
         # Write an action using print
@@ -351,3 +371,5 @@ while True:
 
         # MOVE <x> <y> <light (1|0)> | WAIT <light (1|0)>
         print(f"MOVE {str(move_x)} {str(move_y)} {str(light)}")
+
+    first_turn = False
