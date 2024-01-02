@@ -7,6 +7,7 @@ import math
 fish_type_0 = []
 fish_type_1 = []
 fish_type_2 = []
+fish_type_monster = []
 
 scanned_creatures = []
 saved_scans = []
@@ -40,8 +41,10 @@ def add_scanned_creatures(creature_id, scanned_list):
     
     return scanned_list
 
-def activate_light(my_drones):
-    if my_drones[i][4] > 5 :
+def activate_light(my_drones, no_light):
+    if no_light == True :
+        light = 0
+    elif my_drones[i][4] > 5 :
         light = 1
     else :
         light = 0
@@ -89,6 +92,9 @@ for i in range(creature_count):
     elif _type == 2 :
         fish_type_2.append(creature_id)
         print("id_type_2",creature_id, file=sys.stderr, flush=True)
+    elif _type == -1 :
+        fish_type_monster.append(creature_id)
+        print("id_monster",creature_id, file=sys.stderr, flush=True)
 
 
 
@@ -100,6 +106,7 @@ while True:
     search_zone = -1
     explo_zone_2 = False
     explo_zone_0 = False
+    no_light = False
     
     """"------GAME LOOP-------"""
     my_score = int(input())
@@ -142,8 +149,33 @@ while True:
     for i in range(visible_creature_count):
         creature_id, creature_x, creature_y, creature_vx, creature_vy = [int(j) for j in input().split()]
 
-        """retiens les coordonnées X, Y du fish le plus proche, pas encore scanné"""
-        if creature_id not in scanned_creatures :
+        """if a monster is close, shut down the light and drive oposite way"""
+        if creature_id in fish_type_monster :
+            print("MONSTER ALERT", creature_id, file=sys.stderr, flush=True)
+
+            creature_found = True
+            no_light = True
+            
+            #Find the coordinates of the oposite directetion of the monster
+            print("Monster_X", creature_x, file=sys.stderr, flush=True)
+            print("Monster_Y", creature_y, file=sys.stderr, flush=True)
+
+            print("Drone_X", drone_x, file=sys.stderr, flush=True)
+            print("Drone_Y", drone_y, file=sys.stderr, flush=True)
+            distance_monster = math.dist([creature_x, creature_y], [drone_x, drone_y])
+
+            dx = (creature_x-drone_x)/distance_monster #Normalized vector (direction)
+            dy = (creature_y-drone_y)/distance_monster
+
+            move_x = int(drone_x - (distance_monster*dx))
+            move_y = int(drone_y - (distance_monster*dy))
+
+            print("Move_X", move_x, file=sys.stderr, flush=True)
+            print("Move_Y", move_y, file=sys.stderr, flush=True)
+
+
+            """retiens les coordonnées X, Y du fish le plus proche, pas encore scanné"""
+        elif creature_id not in scanned_creatures :
             print("\nSEARCHING_FOR_FISH",my_drones, file=sys.stderr, flush=True)
             
             print("Creature ID", creature_id, file=sys.stderr, flush=True)
@@ -231,14 +263,14 @@ while True:
                             move_x = 1000
                         move_y = 8750
 
-                        light = activate_light(my_drones)
+                        light = activate_light(my_drones, no_light)
                 
                 else :
                 #get to surface to save the scans
                     move_x = my_drones[i][1]
                     move_y = 0
 
-                    light = activate_light(my_drones)
+                    light = activate_light(my_drones, no_light)
 
                 """----------ZONE 0------------"""
             elif chosen_zone == zone_0 :
@@ -263,14 +295,14 @@ while True:
                             move_x = 1000
                         move_y = 3750
 
-                        light = activate_light(my_drones)
+                        light = activate_light(my_drones, no_light)
                 
                 else :
                 #get to surface to save the scans
                     move_x = my_drones[i][1]
                     move_y = 0
 
-                    light = activate_light(my_drones)
+                    light = activate_light(my_drones, no_light)
 
                 """----------ZONE 1------------"""
             elif chosen_zone == zone_1 :
@@ -293,14 +325,14 @@ while True:
                             move_x = 1000
                         move_y = 6250
 
-                        light = activate_light(my_drones)
+                        light = activate_light(my_drones, no_light)
                 
                 else :
                 #get to surface to save the scans
                     move_x = my_drones[i][1]
                     move_y = 0
 
-                    light = activate_light(my_drones)
+                    light = activate_light(my_drones, no_light)
 
                 """---Retour surface, tout est exploré---"""
             elif chosen_zone == surface :
