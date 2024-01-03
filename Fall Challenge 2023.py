@@ -42,6 +42,9 @@ class Drone:
         self.drone_y = drone_y
         self.emergency = emergency
         self.battery = battery
+    
+    def __repr__(self):
+        return f"{self.drone_id} {self.drone_x} {self.drone_y}"
 
 
 #Functions   
@@ -84,8 +87,22 @@ def zone_choice(zone_0_cleared, zone_1_cleared, zone_2_cleared, explo_zone_2, ex
         zone_choice = zone_2
         return zone_choice
 
-
+def search_closest_drone(my_drones, creature_x, creature_y):
+    """
+    Rerturns ID of closest drone
+    """
+    closest_distance = 50000
+        
+    for i in my_drones :
+        drone_x = i.drone_x
+        drone_y = i.drone_y
+        distance_monster = math.dist([creature_x, creature_y], [drone_x, drone_y])
+        
+        if distance_monster < closest_distance :
+            closest_distance = distance_monster
+            closest_drone = i.drone_id
     
+    return closest_drone
     
 
 
@@ -113,11 +130,11 @@ for i in range(creature_count):
 while True:
     """------VARIABLES A RESET AU DEBUT DU TOUR--------"""
     distance_closest_fish = 16000.0
-    creature_found = False
     search_zone = -1
     explo_zone_2 = False
     explo_zone_0 = False
     no_light = False
+    evading_drones = {}
     
     """"------GAME LOOP-------"""
     my_score = int(input())
@@ -171,17 +188,16 @@ while True:
         if creature_id in fish_type_monster :
             print("MONSTER ALERT", creature_id, file=sys.stderr, flush=True)
 
-
-
-            creature_found = True
             no_light = True
             
-            #Find the coordinates of the oposite directetion of the monster
-            print("Monster_X", creature_x, file=sys.stderr, flush=True)
-            print("Monster_Y", creature_y, file=sys.stderr, flush=True)
+            closest_drone_id = search_closest_drone(my_drones, creature_x, creature_y)
 
-            print("Drone_X", drone_x, file=sys.stderr, flush=True)
-            print("Drone_Y", drone_y, file=sys.stderr, flush=True)
+            for j in my_drones :
+                if j.drone_id == closest_drone_id :
+                    drone_x = j.drone_x
+                    drone_y = j.drone_y
+
+            #Find the coordinates of the oposite direction of the monster
             distance_monster = math.dist([creature_x, creature_y], [drone_x, drone_y])
 
             dx = (creature_x-drone_x)/distance_monster #Normalized vector (direction)
@@ -190,8 +206,14 @@ while True:
             move_x = int(drone_x - (distance_monster*dx))
             move_y = int(drone_y - (distance_monster*dy))
 
+            evading_drones[closest_drone_id] = (move_x, move_y)
+
+            print("Closest_drone_ID", closest_drone_id, file=sys.stderr, flush=True)
             print("Move_X", move_x, file=sys.stderr, flush=True)
             print("Move_Y", move_y, file=sys.stderr, flush=True)
+
+
+
 
 
             """retiens les coordonnées X, Y du fish le plus proche, pas encore scanné"""
@@ -250,7 +272,7 @@ while True:
         traveling_east = False
 
         """Déplacement de la capsule vers la zone voulue"""
-        if creature_found == False :
+        if my_drones[i].drone_id not in evading_drones :
 
             #direction
             if my_drones[i].drone_x > 8800 :
@@ -359,6 +381,11 @@ while True:
 
                     move_x = my_drones[i].drone_y
                     move_y = 0
+
+        else :
+            current_drone = evading_drones[my_drones[i].drone_id]
+            move_x = current_drone[0]
+            move_y = current_drone[1]
 
             
             
