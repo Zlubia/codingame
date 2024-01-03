@@ -27,10 +27,10 @@ zone_0_cleared = False
 zone_1_cleared = False
 zone_2_cleared = False
 
-surface = "surface"
-zone_0 = "zone 0"
-zone_1 = "zone 1"
-zone_2 = "zone 2"
+SURFACE = "surface"
+ZONE_0 = "zone 0"
+ZONE_1 = "zone 1"
+ZONE_2 = "zone 2"
 
 first_turn = True
 
@@ -69,22 +69,22 @@ def zone_choice(zone_0_cleared, zone_1_cleared, zone_2_cleared, explo_zone_2, ex
     #Fonction pour définir dans quelle zone aller avec son drone
     #2 options, zone cleared, ou drone 1 déjà présent dans la zone.
     if zone_2_cleared == True and zone_1_cleared == True and zone_0_cleared == True :
-        zone_choice = surface
+        zone_choice = SURFACE
         return zone_choice
     
     elif zone_2_cleared == True and zone_0_cleared == True :
-        zone_choice = zone_1
+        zone_choice = ZONE_1
         return zone_choice
     
     if explo_zone_2 == True or zone_2_cleared == True :
         if explo_zone_0 == True or zone_0_cleared == True :
-            zone_choice = zone_1
+            zone_choice = ZONE_1
             return zone_choice
         else :
-            zone_choice = zone_0
+            zone_choice = ZONE_0
             return zone_choice
     else :
-        zone_choice = zone_2
+        zone_choice = ZONE_2
         return zone_choice
 
 def search_closest_drone(my_drones, creature_x, creature_y):
@@ -104,6 +104,7 @@ def search_closest_drone(my_drones, creature_x, creature_y):
     
     return closest_drone
     
+
 
 
 
@@ -154,6 +155,7 @@ while True:
     my_drone_count = int(input())
     for i in range(my_drone_count):
         drone_id, drone_x, drone_y, emergency, battery = [int(j) for j in input().split()]
+
         if first_turn == True :
             my_drones.append(Drone(drone_id, drone_x, drone_y, emergency, battery))
         else :
@@ -283,7 +285,7 @@ while True:
             chosen_zone = zone_choice(zone_0_cleared, zone_1_cleared, zone_2_cleared, explo_zone_2, explo_zone_0)
 
             """----------ZONE 2------------"""
-            if chosen_zone == zone_2 :
+            if chosen_zone == ZONE_2 :
 
                 explo_zone_2 = True
 
@@ -315,7 +317,7 @@ while True:
                     light = activate_light(my_drones, no_light)
 
                 """----------ZONE 0------------"""
-            elif chosen_zone == zone_0 :
+            elif chosen_zone == ZONE_0 :
 
                 explo_zone_0 = True
 
@@ -347,7 +349,7 @@ while True:
                     light = activate_light(my_drones, no_light)
 
                 """----------ZONE 1------------"""
-            elif chosen_zone == zone_1 :
+            elif chosen_zone == ZONE_1 :
 
                 for j in fish_type_1 :
                     #print("j",j, file=sys.stderr, flush=True)
@@ -377,7 +379,7 @@ while True:
                     light = activate_light(my_drones, no_light)
 
                 """---Retour surface, tout est exploré---"""
-            elif chosen_zone == surface :
+            elif chosen_zone == SURFACE :
 
                     move_x = my_drones[i].drone_y
                     move_y = 0
