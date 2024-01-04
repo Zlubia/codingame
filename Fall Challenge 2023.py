@@ -17,7 +17,12 @@ move_x = 2000
 move_y = 10000
 light = 0
 
-traveling_east = True
+WEST = 2000
+CENTER = 5000
+EAST = 8000
+
+TRAVELING_EAST = "Traveling East"
+TRAVELING_WEST = "Traveling West"
 
 CEILING_ZONE_0 = 2500
 CEILING_ZONE_1 = 5000
@@ -43,11 +48,18 @@ class Drone:
         self.drone_y = drone_y
         self.emergency = emergency
         self.battery = battery
+        self.light = 0
         self.move_x = drone_x
         self.move_y = drone_y
+        self.previous_x = drone_x
+        self.previous_y = drone_y
         #set Target, can be : MONSTER, FISH, SURFACE, ZONE_0, ZONE_1, ZONE_2
         self.target = ZONE_2
         self.distance_closest_fish = 20000
+        if self.drone_x < CENTER :
+            self.direction_east_west = TRAVELING_EAST
+        else :
+            self.direction_east_west = TRAVELING_WEST
     
     def __repr__(self):
         return f"{self.drone_id} {self.drone_x} {self.drone_y} target : {self.target}, direction : {self.move_x},{self.move_y}"
@@ -61,6 +73,7 @@ def add_scanned_creatures(creature_id, scanned_list):
     
     return scanned_list
 
+
 def activate_light(my_drones, no_light):
     if no_light == True :
         light = 0
@@ -70,6 +83,35 @@ def activate_light(my_drones, no_light):
         light = 0
     
     return light
+
+
+def search_closest_drone(my_drones, creature_x, creature_y):
+    """
+    Rerturns ID of closest drone
+    """
+    closest_distance = 50000
+        
+    for i in my_drones :
+        drone_x = i.drone_x
+        drone_y = i.drone_y
+        distance_monster = math.dist([creature_x, creature_y], [drone_x, drone_y])
+        
+        if distance_monster < closest_distance :
+            closest_distance = distance_monster
+            closest_drone = i.drone_id  
+            
+    return closest_drone
+
+    
+def select_closest_side(drone):
+    """
+    Returns the closest border of the map
+    """
+    if drone.drone_x <= CENTER :
+        return WEST
+    else :
+        return EAST
+
 
 def chose_zone(cleared_zones):
     """Fonction pour définir dans quelle zone aller avec son drone"""
@@ -85,23 +127,35 @@ def chose_zone(cleared_zones):
 
     return zone_choice
 
-def search_closest_drone(my_drones, creature_x, creature_y):
-    """
-    Rerturns ID of closest drone
-    """
-    closest_distance = 50000
-        
-    for i in my_drones :
-        drone_x = i.drone_x
-        drone_y = i.drone_y
-        distance_monster = math.dist([creature_x, creature_y], [drone_x, drone_y])
-        
-        if distance_monster < closest_distance :
-            closest_distance = distance_monster
-            closest_drone = i.drone_id
     
-    return closest_drone
-    
+def find_depth(drone):
+    """
+    Returns the Y value for the movement of the drone.
+    """
+    if drone.target == ZONE_0 :
+        drone.move_y = 3250
+    elif drone.target == ZONE_1 :
+        drone.move_y = 6250
+    elif drone.target == ZONE_2 :
+        drone.move_y = 9250
+    elif drone.target == SURFACE :
+        drone.move_y = 0
+    else :
+        pass
+        
+    return drone.move_y
+
+
+def calc_travel_direction_east_west(drone):
+    """
+    Returns traveling_east or traveling_west. It's the current direction of the drone
+    """
+    if drone.previous_x < drone.x :
+        return TRAVELING_EAST
+    elif drone.previous_x > drone.x :
+        return TRAVELING_WEST
+    else :
+        return drone.direction_east_west
 
 
 #Initial turn
@@ -225,7 +279,7 @@ while True:
             for j in my_drones :
 
                 if j.target == MONSTER :
-                    break
+                    pass
                 elif j.drone_id == closest_drone_id :
 
                     drone_x = my_drones[j].drone_x
@@ -267,21 +321,28 @@ while True:
         for j in fish_type_0 :
             if j not in saved_scans :
                 cleared_zones[ZONE_0] = False
+                break
                 
 
     for i in range(my_drone_count):
 
-        #RESET VARIABLE :
-        traveling_west = False
-        traveling_east = False
 
-        zone_choice = chose_zone(zone_0_cleared, zone_1_cleared, zone_2_cleared, explo_zone_2, explo_zone_0)
+        if my_drones[i].target == MONSTER or my_drones[i].target == FISH :
+            pass
+        else :     
+            my_drones[i].target == chose_zone(cleared_zones)
+
+        my_drones[i].move_y = find_depth(my_drones[i])
+
+        if first_turn == True :
+            my_drones[i].move_x = select_closest_side(my_drones[i])
 
 
 
 
-
-
+        move_x = my_drones[i].move_x
+        move_y = my_drones[i].move_y
+        light = my_drones[i].light
 
         # Write an action using print
         # To debug: print("Debug messages...", file=sys.stderr, flush=True)
