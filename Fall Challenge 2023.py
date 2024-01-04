@@ -19,18 +19,19 @@ light = 0
 
 traveling_east = True
 
-ceiling_zone_0 = 2500
-ceiling_zone_1 = 5000
-ceiling_zone_2 = 7500
-
-zone_0_cleared = False
-zone_1_cleared = False
-zone_2_cleared = False
+CEILING_ZONE_0 = 2500
+CEILING_ZONE_1 = 5000
+CEILING_ZONE_2 = 7500
 
 SURFACE = "surface"
 ZONE_0 = "zone 0"
 ZONE_1 = "zone 1"
 ZONE_2 = "zone 2"
+
+MONSTER = "Monster"
+FISH = "Fish"
+
+cleared_zones = {ZONE_0 : False, ZONE_1 : False, ZONE_2 : False}
 
 first_turn = True
 
@@ -42,9 +43,14 @@ class Drone:
         self.drone_y = drone_y
         self.emergency = emergency
         self.battery = battery
+        self.move_x = drone_x
+        self.move_y = drone_y
+        #set Target, can be : MONSTER, FISH, SURFACE, ZONE_0, ZONE_1, ZONE_2
+        self.target = ZONE_2
+        self.distance_closest_fish = 20000
     
     def __repr__(self):
-        return f"{self.drone_id} {self.drone_x} {self.drone_y}"
+        return f"{self.drone_id} {self.drone_x} {self.drone_y} target : {self.target}, direction : {self.move_x},{self.move_y}"
 
 
 #Functions   
@@ -65,27 +71,19 @@ def activate_light(my_drones, no_light):
     
     return light
 
-def zone_choice(zone_0_cleared, zone_1_cleared, zone_2_cleared, explo_zone_2, explo_zone_0):
-    #Fonction pour définir dans quelle zone aller avec son drone
-    #2 options, zone cleared, ou drone 1 déjà présent dans la zone.
-    if zone_2_cleared == True and zone_1_cleared == True and zone_0_cleared == True :
-        zone_choice = SURFACE
-        return zone_choice
-    
-    elif zone_2_cleared == True and zone_0_cleared == True :
-        zone_choice = ZONE_1
-        return zone_choice
-    
-    if explo_zone_2 == True or zone_2_cleared == True :
-        if explo_zone_0 == True or zone_0_cleared == True :
-            zone_choice = ZONE_1
-            return zone_choice
-        else :
-            zone_choice = ZONE_0
-            return zone_choice
-    else :
+def chose_zone(cleared_zones):
+    """Fonction pour définir dans quelle zone aller avec son drone"""
+
+    if cleared_zones[ZONE_0] == False :
+        zone_choice = ZONE_0
+    elif cleared_zones[ZONE_2] == False :
         zone_choice = ZONE_2
-        return zone_choice
+    elif cleared_zones[ZONE_1] == False :
+        zone_choice = ZONE_1
+    else :
+        zone_choice = SURFACE
+
+    return zone_choice
 
 def search_closest_drone(my_drones, creature_x, creature_y):
     """
@@ -104,8 +102,6 @@ def search_closest_drone(my_drones, creature_x, creature_y):
     
     return closest_drone
     
-
-
 
 
 #Initial turn
@@ -130,12 +126,13 @@ for i in range(creature_count):
 # game loop
 while True:
     """------VARIABLES A RESET AU DEBUT DU TOUR--------"""
-    distance_closest_fish = 16000.0
+    for i in my_drones :
+        i.distance_closest_fish = 20000
+
     search_zone = -1
     explo_zone_2 = False
     explo_zone_0 = False
     no_light = False
-    evading_drones = {}
     
     """"------GAME LOOP-------"""
     my_score = int(input())
@@ -186,8 +183,8 @@ while True:
     for i in range(visible_creature_count):
         creature_id, creature_x, creature_y, creature_vx, creature_vy = [int(j) for j in input().split()]
 
-        """if a monster is close, shut down the light and drive oposite way"""
         if creature_id in fish_type_monster :
+            #MONSTER
             print("MONSTER ALERT", creature_id, file=sys.stderr, flush=True)
 
             no_light = True
@@ -208,31 +205,38 @@ while True:
             move_x = int(drone_x - (distance_monster*dx))
             move_y = int(drone_y - (distance_monster*dy))
 
-            evading_drones[closest_drone_id] = (move_x, move_y)
-
-            print("Closest_drone_ID", closest_drone_id, file=sys.stderr, flush=True)
-            print("Move_X", move_x, file=sys.stderr, flush=True)
-            print("Move_Y", move_y, file=sys.stderr, flush=True)
-
-
+            for j in my_drones :
+                if j.drone_id == closest_drone_id :
+                    j.move_x = move_x
+                    j.move_y = move_y
+                    j.target = MONSTER
+                    print("Running", j, file=sys.stderr, flush=True)
+                
 
 
 
             """retiens les coordonnées X, Y du fish le plus proche, pas encore scanné"""
         elif creature_id not in scanned_creatures :
             print("\nSEARCHING_FOR_FISH",my_drones, file=sys.stderr, flush=True)
-            
             print("Creature ID", creature_id, file=sys.stderr, flush=True)
-            for i in my_drones :
-                drone_x = my_drones[i].drone_x
-                drone_y = my_drones[i].drone_y
-                distance_current_fish = math.dist([creature_x, creature_y], [drone_x, drone_y])
-                
-                if distance_current_fish < distance_closest_fish :
-                    distance_closest_fish = distance_current_fish
-                    move_x = creature_x
-                    move_y = creature_y
-                    creature_found = True
+
+            closest_drone_id = search_closest_drone(my_drones, creature_x, creature_y)
+
+            for j in my_drones :
+
+                if j.target == MONSTER :
+                    break
+                elif j.drone_id == closest_drone_id :
+
+                    drone_x = my_drones[j].drone_x
+                    drone_y = my_drones[j].drone_y
+                    distance_current_fish = math.dist([creature_x, creature_y], [drone_x, drone_y])
+                    
+                    if distance_current_fish < j.distance_closest_fish :
+                        j.distance_closest_fish = distance_current_fish
+                        j.move_x = creature_x
+                        j.move_y = creature_y
+                        j.target = FISH
 
     radar_blip_count = int(input())
     for i in range(radar_blip_count):
@@ -244,28 +248,26 @@ while True:
     
     """Search_Zone"""
     #SUREMENT REMPLACABLE PAR UNE FONCTION CECI------------------------------------------------------------------------
-    if zone_2_cleared == False :
-        zone_2_cleared = True
+    if cleared_zones[ZONE_2] == False :
+        cleared_zones[ZONE_2] = True
         for j in fish_type_2 :
             if j not in saved_scans :
-                zone_2_cleared = False
+                cleared_zones[ZONE_2] = False
+                break
 
-    if zone_1_cleared == False :
-        zone_1_cleared = True
+    if cleared_zones[ZONE_1] == False :
+        cleared_zones[ZONE_1] = True
         for j in fish_type_1 :
             if j not in saved_scans :
-                zone_1_cleared = False
+                cleared_zones[ZONE_1] = False
+                break
 
-    
-    if zone_0_cleared == False :
-        zone_0_cleared = True
+    if cleared_zones[ZONE_0] == False :
+        cleared_zones[ZONE_0] = True
         for j in fish_type_0 :
             if j not in saved_scans :
-                zone_0_cleared = False
-
-    print("zone_0_cleared",zone_0_cleared, file=sys.stderr, flush=True)
+                cleared_zones[ZONE_0] = False
                 
-
 
     for i in range(my_drone_count):
 
@@ -273,127 +275,13 @@ while True:
         traveling_west = False
         traveling_east = False
 
-        """Déplacement de la capsule vers la zone voulue"""
-        if my_drones[i].drone_id not in evading_drones :
+        zone_choice = chose_zone(zone_0_cleared, zone_1_cleared, zone_2_cleared, explo_zone_2, explo_zone_0)
 
-            #direction
-            if my_drones[i].drone_x > 8800 :
-                traveling_west = True
-            elif my_drones[i].drone_x < 1200 :
-                traveling_east = True
 
-            chosen_zone = zone_choice(zone_0_cleared, zone_1_cleared, zone_2_cleared, explo_zone_2, explo_zone_0)
 
-            """----------ZONE 2------------"""
-            if chosen_zone == ZONE_2 :
 
-                explo_zone_2 = True
 
-                for j in fish_type_2 :
-                    #print("j",j, file=sys.stderr, flush=True)
-                    if j not in scanned_creatures :
-                        search_zone = 2
-            
-                if search_zone == 2 :
-                #go to zone and search there
 
-                    if my_drones[i].drone_y < ceiling_zone_2+1200 :
-                        move_x = 1000
-                        move_y = 10000
-                    else :
-                        if traveling_east == True :
-                            move_x = 9000
-                        elif traveling_west == True :
-                            move_x = 1000
-                        move_y = 8750
-
-                        light = activate_light(my_drones, no_light)
-                
-                else :
-                #get to surface to save the scans
-                    move_x = my_drones[i].drone_x
-                    move_y = 0
-
-                    light = activate_light(my_drones, no_light)
-
-                """----------ZONE 0------------"""
-            elif chosen_zone == ZONE_0 :
-
-                explo_zone_0 = True
-
-                for j in fish_type_0 :
-                    #print("j",j, file=sys.stderr, flush=True)
-                    if j not in scanned_creatures :
-                        search_zone = 0
-
-                if search_zone == 0 :
-                #go to zone and search there
-
-                    if my_drones[i].drone_y < ceiling_zone_0+1100 or my_drones[i].drone_y > ceiling_zone_0+1400:
-                        move_x = 1000
-                        move_y = 3750
-                    else :
-                        if traveling_east == True :
-                            move_x = 9000
-                        elif traveling_west == True :
-                            move_x = 1000
-                        move_y = 3750
-
-                        light = activate_light(my_drones, no_light)
-                
-                else :
-                #get to surface to save the scans
-                    move_x = my_drones[i].drone_x
-                    move_y = 0
-
-                    light = activate_light(my_drones, no_light)
-
-                """----------ZONE 1------------"""
-            elif chosen_zone == ZONE_1 :
-
-                for j in fish_type_1 :
-                    #print("j",j, file=sys.stderr, flush=True)
-                    if j not in scanned_creatures :
-                        search_zone = 1
-
-                if search_zone == 1 :
-                #go to zone and search there
-
-                    if my_drones[i].drone_y < ceiling_zone_1+1100 or my_drones[i].drone_y > ceiling_zone_1+1400:
-                        move_x = 1000
-                        move_y = 6250
-                    else :
-                        if traveling_east == True :
-                            move_x = 9000
-                        elif traveling_west == True :
-                            move_x = 1000
-                        move_y = 6250
-
-                        light = activate_light(my_drones, no_light)
-                
-                else :
-                #get to surface to save the scans
-                    move_x = my_drones[i].drone_y
-                    move_y = 0
-
-                    light = activate_light(my_drones, no_light)
-
-                """---Retour surface, tout est exploré---"""
-            elif chosen_zone == SURFACE :
-
-                    move_x = my_drones[i].drone_y
-                    move_y = 0
-
-        else :
-            current_drone = evading_drones[my_drones[i].drone_id]
-            move_x = current_drone[0]
-            move_y = current_drone[1]
-
-            
-            
-        """RUSTINE - Charger battery si moins de 5"""
-        if my_drones[i].drone_y < 5 :
-            light = 0
 
         # Write an action using print
         # To debug: print("Debug messages...", file=sys.stderr, flush=True)
