@@ -37,13 +37,26 @@ print(line, file=sys.stderr, flush=True)
 
 midPoint = int(heightOfArrows/2)
 
-for j in range(midPoint+1) :
-    startLine = j*additionalIndentOfEachLine*space
-    print(startLine + line)
+if instruction[0] == "right" :
 
-for k in range(midPoint-1, -1, -1) :
-    startLine = k*additionalIndentOfEachLine*space
-    print(startLine + line)
+    for j in range(midPoint+1) :
+        startLine = j*additionalIndentOfEachLine*space
+        print(startLine + line)
+
+    for k in range(midPoint-1, -1, -1) :
+        startLine = k*additionalIndentOfEachLine*space
+        print(startLine + line)
+
+elif instruction[0] == "left" :
+
+    for j in range(midPoint+1) :
+        numberOfLines = midPoint-j
+        startLine = numberOfLines*additionalIndentOfEachLine*space
+        print(startLine + line)
+
+    for k in range(midPoint) :
+        startLine = (k+1)*additionalIndentOfEachLine*space
+        print(startLine + line)
 
 # Write an answer using print
 # To debug: print("Debug messages...", file=sys.stderr, flush=True)
